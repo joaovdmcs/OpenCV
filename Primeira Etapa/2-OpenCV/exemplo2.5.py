@@ -7,3 +7,8 @@ for i in range(0,imagem.shape[0],10): #Pula de 10 em 10
 
 cv2.imshow('Imagem modificada', imagem)
 cv2.waitKey(0) 
+
+
+
+ 
+
