@@ -49,7 +49,29 @@ def computeTracking(frame,hue,sat,val):
     gray = cv2.cvtColor(result,cv2.COLOR_BGR2GRAY)
     _,gray = cv2.threshold(gray,0,255,cv2.THRESH_BINARY | cv2.THRESH_OTSU)
     
-    return gray
+    contours, hierarchy = cv2.findContours(gray,cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE) #formacao de contorno nos objetos
+    
+    if contours:
+        maxArea = cv2.contourArea(contours[0]) #caso existe contorno, seleciona um contorno 0 na lista de contornos para achar o maior
+        i = 0
+        contourMaxAreaId = 0
+        
+        #processo de busca do maior contorno
+        for c in contours:
+            if maxArea < cv2.contourArea(c):
+                maxArea = cv2.contourArea(c)
+                contourMaxAreaId = i 
+            
+            i+=1
+        contourMaxArea = contours[contourMaxAreaId]
+        
+        #formacao das coordenadas de um retangulo do maior contorno encontrado anteriormente
+        x,y,w,h = cv2.boundingRect(contourMaxArea)
+        
+        #desenho do retangulo em frame
+        cv2.rectangle(frame,(x,y) ,(x+w,y+h), (0,0,255),2)
+        
+    return frame,gray
 
 def onChange(val):
     return
@@ -77,11 +99,11 @@ while True:
     
    
     succ, frame = video.read()
-    cv2.imshow('Road', frame)
     
     hue,sat,val = trackbarLimit()
-    gray = computeTracking(frame, hue, sat, val)
+    frame,gray = computeTracking(frame, hue, sat, val)
     cv2.imshow("Mask", gray)
+    cv2.imshow('Road', frame)
     
     
    
