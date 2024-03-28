@@ -10,7 +10,7 @@ video = cv2.VideoCapture('road.mp4') #captura do video
 #criacao de variaveis
 trackbarWindow = 'trackbar window'
 cv2.namedWindow(trackbarWindow)
-pts = deque(maxlen=32)
+pts = deque(maxlen=32) #buffer do tamanho 32 para os pontos salvos
 counter = 0 #contador de frames para o buffer de direcao
 
 def trackbarLimit(): #funcao que levanta constraints para a interface grafica de selecao de hue, saturacao e valor HSV da mascara.
@@ -81,9 +81,12 @@ def computeTracking(frame,hue,sat,val):
         ponto = (int((2*x+w)/2),int((2*y+h)/2))
         pts.appendleft(ponto)
         
+        #processo de determinacao da trajetoria/direcao predominante nos objetos captados
         for i in np.arange(1,len(pts)):
+            #verifica se ha algo na posicao dos pontos registrados anteriormente
             if pts[i-1] is None or pts[i] is None:
                 continue
+            #determinacao da direcao (Norte Sul Leste Oeste) por meio de comparacoes    
             if counter >= 10 and i == 1 and pts[-10] is not None:
                 dX = pts[-10][0] - pts[i][0]
                 dY = pts[-10][1] - pts[i][1]
@@ -100,8 +103,12 @@ def computeTracking(frame,hue,sat,val):
                     
                 else:
                     direction = dirX if dirX != '' else dirY
+                    
+            #desenho de uma linha na trajetoria do retangulo        
             cv2.line(frame,pts[i-1],pts[i],(0,255,255),4) 
+            #texto referente a direcao (Norte Sul Leste ou Oeste)
             cv2.putText(frame,direction,(10,30),cv2.FONT_HERSHEY_SIMPLEX,0.65,(0,0,255),3)
+            #Texto das coordenadas salvas do ponto central do retangulo no frame (salvos em pts) durante a execucao do texto
             cv2.putText(frame,'dx:{},dy{}'.format(dX,dY),(10,frame.shape[0]-10),cv2.FONT_HERSHEY_SIMPLEX,0.35,(0,0,255),1)
               
     
