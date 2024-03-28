@@ -8,13 +8,16 @@ from collections import deque
 video = cv2.VideoCapture('road.mp4') #captura do video
 
 #criacao de variaveis
+
+#nomeacao e criacao da janela de trackbars
 trackbarWindow = 'trackbar window'
 cv2.namedWindow(trackbarWindow)
-pts = deque(maxlen=32) #buffer do tamanho 32 para os pontos salvos
+pts = deque(maxlen=32) #criacao do vetor para armazenamento dos pontos centrais dos retangulos dos objetos captados com buffer do tamanho 32 para os pontos salvos
 counter = 0 #contador de frames para o buffer de direcao
 
 def trackbarLimit(): #funcao que levanta constraints para a interface grafica de selecao de hue, saturacao e valor HSV da mascara.
     
+    #hue min nao pode ser maior que hue max
     hue = {}
     hue['min'] = cv2.getTrackbarPos('Min_Hue', trackbarWindow)
     hue['max'] = cv2.getTrackbarPos('Max_Hue', trackbarWindow)   
@@ -22,13 +25,15 @@ def trackbarLimit(): #funcao que levanta constraints para a interface grafica de
         cv2.setTrackbarPos('Max_Hue', trackbarWindow, hue['min'])
         hue['max'] = cv2.getTrackbarPos('Max_Hue', trackbarWindow)
     
+    #sat min nao pode ser maior que sat max
     sat = {}
     sat['min'] = cv2.getTrackbarPos('Min_Sat',trackbarWindow)
     sat['max'] = cv2.getTrackbarPos('Max_Sat',trackbarWindow)
     if sat['min'] > sat['max']:
         cv2.setTrackbarPos('Max_Sat',trackbarWindow, sat['min'])
         sat['max'] = cv2.getTrackbarPos('Max_Sat', trackbarWindow)
-        
+    
+    #val min nao pode ser maior que val max
     val = {}
     val['min'] = cv2.getTrackbarPos('Min_Val',trackbarWindow)
     val['max'] = cv2.getTrackbarPos('Max_Val',trackbarWindow)
@@ -57,11 +62,11 @@ def computeTracking(frame,hue,sat,val):
     
     if contours:
         #variaveis locais
-        direction = ''
-        (dX,dY) = (0,0)
+        direction = '' #direcao cardinal
+        (dX,dY) = (0,0) #coordenadas do centro do retangulo
         maxArea = cv2.contourArea(contours[0]) #caso existe contorno, seleciona um contorno 0 na lista de contornos para achar o maior
-        i = 0
-        contourMaxAreaId = 0
+        i = 0 #indice para selecao do contorno maior
+        contourMaxAreaId = 0 #id do contorno maior durante a selecao
         
         #processo de busca do maior contorno
         for c in contours:
@@ -70,7 +75,7 @@ def computeTracking(frame,hue,sat,val):
                 contourMaxAreaId = i 
             
             i+=1
-        contourMaxArea = contours[contourMaxAreaId]
+        contourMaxArea = contours[contourMaxAreaId]#atribuicao do maior contorno encontrado para contourMaxArea
         
         #formacao das coordenadas de um retangulo do maior contorno encontrado anteriormente
         x,y,w,h = cv2.boundingRect(contourMaxArea)
@@ -79,6 +84,7 @@ def computeTracking(frame,hue,sat,val):
         cv2.rectangle(frame,(x,y) ,(x+w,y+h), (0,0,255),2)
         #definicao do centro do retangulo e realizacao de append das cordenadas do ponto em pts (para a definicao de direcao)
         ponto = (int((2*x+w)/2),int((2*y+h)/2))
+        #append do ponto central em pts
         pts.appendleft(ponto)
         
         #processo de determinacao da trajetoria/direcao predominante nos objetos captados
@@ -87,22 +93,22 @@ def computeTracking(frame,hue,sat,val):
             if pts[i-1] is None or pts[i] is None:
                 continue
             #determinacao da direcao (Norte Sul Leste Oeste) por meio de comparacoes    
-            if counter >= 10 and i == 1 and pts[-10] is not None:
-                dX = pts[-10][0] - pts[i][0]
-                dY = pts[-10][1] - pts[i][1]
-                (dirX, dirY) = ("", "")
+            if counter >= 10 and i == 1 and pts[-10] is not None:  #verificacao se o buffer esta cheio para formacao da linha de trajetoria, se o iterador coincide com a posicao e se a posicao -10 contem algo (em pts)
+                dX = pts[-10][0] - pts[i][0] #coordenada x
+                dY = pts[-10][1] - pts[i][1] #coordenada y 
+                (dirX, dirY) = ("", "") #tupla com as coordenadas
                 
                 if np.abs(dX) > 20:
-                    dirX = 'Leste' if np.sign(dX) == 1 else 'Oeste'
+                    dirX = 'Leste' if np.sign(dX) == 1 else 'Oeste' #atribuicao da direcao predominante (leste ou oeste), utilizando o metodo absolute de numpy sobre a coordenada X (na verificacao em relacao a predominancia)
                 
                 if np.abs(dY) > 20:
-                    dirY = 'Norte' if np.sign(dY) == 1 else 'Sul'
+                    dirY = 'Norte' if np.sign(dY) == 1 else 'Sul'  #atribuicao da direcao predominante (norte ou sul), utilizando o metodo absolute de numpy sobre a coordenada Y (na verificacao em relacao a predominancia)
                     
                 if dirX != '' and dirY != '':
-                    direction == "{}-{}".format(dirY,dirX)
+                    direction == "{}-{}".format(dirY,dirX) #formatacao da string a ser exibida em frame
                     
                 else:
-                    direction = dirX if dirX != '' else dirY
+                    direction = dirX if dirX != '' else dirY #formatacao da string a ser exibida em frame
                     
             #desenho de uma linha na trajetoria do retangulo        
             cv2.line(frame,pts[i-1],pts[i],(0,255,255),4) 
@@ -118,16 +124,17 @@ def onChange(val): #funcao reduntante para a criacao da trackbar
     return
 
 #criacao da trackbar grafica que permitira a mudanca de valores da mascara.
-cv2.createTrackbar('Min_Hue',trackbarWindow, 0, 255, onChange)
+cv2.createTrackbar('Min_Hue',trackbarWindow, 0, 255, onChange) #trackbar do Hue (min - max)
 cv2.createTrackbar('Max_Hue',trackbarWindow, 255, 255, onChange)
 
-cv2.createTrackbar('Min_Sat',trackbarWindow, 0, 255, onChange)
+cv2.createTrackbar('Min_Sat',trackbarWindow, 0, 255, onChange) #trackbar de Saturation (min - max)
 cv2.createTrackbar('Max_Sat',trackbarWindow, 255, 255, onChange)
 
-cv2.createTrackbar('Min_Val',trackbarWindow, 0, 255, onChange)
+cv2.createTrackbar('Min_Val',trackbarWindow, 0, 255, onChange) #trackbar de Value (min - max)
 cv2.createTrackbar('Max_Val',trackbarWindow, 255, 255, onChange)
 
-min_hue = cv2.getTrackbarPos('Min_Hue', trackbarWindow)
+#recuperacao dos valores da janela para o codigo em si (para surtirem efeito no codigo apos mudanca pelo usuario)
+min_hue = cv2.getTrackbarPos('Min_Hue', trackbarWindow) 
 max_hue = cv2.getTrackbarPos('Max_Hue', trackbarWindow)
 
 min_sat = cv2.getTrackbarPos('Min_Sat', trackbarWindow)
