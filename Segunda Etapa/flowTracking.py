@@ -50,12 +50,13 @@ def computeTracking(frame,hue,sat,val):
     
     result = cv2.bitwise_and(frame,frame,mask=mask) #comparacao dos pixels da imagem com ela mesma com a mask como fator "determinante" da cor resultante(filtracao de pixels).
     
-    gray = cv2.cvtColor(result,cv2.COLOR_BGR2GRAY)
-    _,gray = cv2.threshold(gray,0,255,cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    gray = cv2.cvtColor(result,cv2.COLOR_BGR2GRAY) #cria um frame cinza com base em result
+    _,gray = cv2.threshold(gray,0,255,cv2.THRESH_BINARY | cv2.THRESH_OTSU) #utiliza o metodo OTSU de limiarizacao em cima de gray
     
     contours, hierarchy = cv2.findContours(gray,cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE) #formacao de contorno nos objetos
     
     if contours:
+        #variaveis locais
         direction = ''
         (dX,dY) = (0,0)
         maxArea = cv2.contourArea(contours[0]) #caso existe contorno, seleciona um contorno 0 na lista de contornos para achar o maior
@@ -76,8 +77,10 @@ def computeTracking(frame,hue,sat,val):
         
         #desenho do retangulo em frame
         cv2.rectangle(frame,(x,y) ,(x+w,y+h), (0,0,255),2)
+        #definicao do centro do retangulo e realizacao de append das cordenadas do ponto em pts (para a definicao de direcao)
         ponto = (int((2*x+w)/2),int((2*y+h)/2))
         pts.appendleft(ponto)
+        
         for i in np.arange(1,len(pts)):
             if pts[i-1] is None or pts[i] is None:
                 continue
@@ -104,7 +107,7 @@ def computeTracking(frame,hue,sat,val):
     
     return frame,gray
 
-def onChange(val): #funcao reduntante
+def onChange(val): #funcao reduntante para a criacao da trackbar
     return
 
 #criacao da trackbar grafica que permitira a mudanca de valores da mascara.
@@ -135,16 +138,21 @@ while True:
     #leitura dos frames do video
     succ, frame = video.read()
     
+    #processo que recebe os valores com constraints ja aplicados na trackbar (i.e o valor minimo de Hue NAO pode ser maior que o maximo)
     hue,sat,val = trackbarLimit()
+    
     frame,gray = computeTracking(frame, hue, sat, val)
     
-    
+    #mostra duas janelas, uma contendo a mascara do frame filtrado, o outro o frame com retangulo sobre a maior area dentro das especificaoes de filtracao
+    #uma linha demonstrando a trajetoria, a trajetoria cardinal e coordenadas da linha
     cv2.imshow("Mask", gray)
     cv2.imshow('Road', frame)
+    #contador para o buffer da trajetoria (conta os frames)
     counter += 1
     
     
     
-   
+
+#apos finalizacao da captura, realisa release no video e destroi todas as janelas criadas.
 video.release()
 cv2.destroyAllWindows()
